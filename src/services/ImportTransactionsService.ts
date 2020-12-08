@@ -4,16 +4,15 @@ import csvParse from 'csv-parse';
 
 import uploadConfig from '../config/upload';
 
+import { getRepository, getCustomRepository } from 'typeorm';
+
 import Transaction from '../models/Transaction';
-import TransactionsRepository from '../repositories/TransactionsRepository';
 import Category from '../models/Category';
-import { getRepository, In } from 'typeorm';
 
 class ImportTransactionsService {
-  //Transaction[]
-  async execute(csvTransactionFilename: string): Promise<void> {
+  async execute(csvTransactionFilename: string): Promise<Transaction[]> {
     const categoryRepository = getRepository(Category);
-    const transactionsRepository = getRepository(Transaction);
+    const transactionRepository = getRepository(Transaction);
 
     const csvTransactionPath = path.join(uploadConfig.directory, csvTransactionFilename);
 
@@ -27,37 +26,57 @@ class ImportTransactionsService {
 
     const parseCSV = readCSVStream.pipe(parseStream);
 
-    const lines = new Array();
+    const categories: string[] = [];
+    let transactions = new Array();
 
     parseCSV.on('data', line => {
-      lines.push(line);
+      categories.push(line[3]);
+      transactions.push(line);
     });
 
     await new Promise(resolve => {
       parseCSV.on('end', resolve);
     });
 
-    const createTransaction = new Array();
+    for(let index = 0; index < categories.length; index++){
 
-    const listTransactions = lines.map(async (item) => {
+      let checkCategoryExist = await categoryRepository.findOne({
+        title: categories[index]
+      })
 
-      const [title, type, value, category] = item;
+      if(!checkCategoryExist){
+        checkCategoryExist = categoryRepository.create({
+          title: categories[index]
+        });
 
-      const transaction = {
-        title,
-        value,
-        type,
-        category
+        await categoryRepository.save(checkCategoryExist);
       }
 
-      createTransaction.push(transactionsRepository.create(transaction));
+      const { id } = checkCategoryExist;
 
-      return transaction;
-    });
+      transactions[index][3] = id;
+    }
 
-    await transactionsRepository.save(createTransaction);
+    const returnTransactions = new Array();
 
-    console.log(listTransactions);
+    for(let i = 0; i < transactions.length; i++){
+
+      const [ title, type, value, category_id ] = transactions[i];
+
+      const transactionCreate = transactionRepository.create({
+        title,
+        type,
+        value,
+        category_id
+      });
+
+      returnTransactions.push(transactionCreate);
+
+      await transactionRepository.save(transactionCreate);
+
+    }
+
+    return returnTransactions;
   }
 }
 
