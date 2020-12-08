@@ -4,7 +4,7 @@ import csvParse from 'csv-parse';
 
 import uploadConfig from '../config/upload';
 
-import { getRepository, getCustomRepository } from 'typeorm';
+import { getRepository } from 'typeorm';
 
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
@@ -75,6 +75,8 @@ class ImportTransactionsService {
       await transactionRepository.save(transactionCreate);
 
     }
+
+    await fs.promises.unlink(csvTransactionPath);
 
     return returnTransactions;
   }
