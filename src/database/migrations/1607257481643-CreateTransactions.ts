@@ -1,6 +1,6 @@
 import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
 
-export class CreateTransactions1607257481643 implements MigrationInterface {
+export default class CreateTransactions1607257481643 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
 
@@ -21,7 +21,9 @@ export class CreateTransactions1607257481643 implements MigrationInterface {
           },
           {
             name: 'value',
-            type: 'numeric'
+            type: 'decimal',
+            precision: 10,
+            scale: 2
           },
           {
             name: 'type',
